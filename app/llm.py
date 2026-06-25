@@ -91,36 +91,48 @@ def _context_block(contexts: list[dict]) -> str:
     )
 
 
+GREETING_FALLBACK = (
+    "Hi! I'm the department FAQ assistant. You can ask me about courses, "
+    "registration, fees, library hours, scholarships, Wi-Fi, and more."
+)
+
+
 def generate_answer(
     question: str, contexts: list[dict], history: list[dict] | None = None
 ) -> tuple[str, bool]:
-    """Return (answer, llm_used). Grounded strictly in `contexts`.
+    """Return (answer, llm_used).
 
-    `history` is prior {role, content} turns for multi-turn follow-ups.
+    Factual answers are grounded strictly in `contexts`, but greetings / small
+    talk / off-topic messages (no relevant context) get a friendly reply instead
+    of a forced "I don't know". `history` is prior turns for follow-ups.
     """
-    if not contexts:
-        return (
-            "I don't have information about that yet. Please try rephrasing, "
-            "or contact the department office.",
-            False,
-        )
+    relevant = bool(contexts) and contexts[0]["score"] >= settings.RELEVANCE_THRESHOLD
 
     system = (
-        "You are a helpful assistant for a college department's FAQs. "
-        "Use the conversation so far for context, but answer ONLY using the "
-        "provided context. If the context does not contain the answer, say you "
-        "don't have that information. Be concise (2-4 sentences) and cite "
-        "sources inline like [1], [2]."
+        "You are a friendly assistant for a college department's FAQ desk. "
+        "If the user greets you or makes small talk, reply warmly in one short "
+        "sentence and invite them to ask about the department (courses, "
+        "registration, fees, library, etc.). "
+        "For actual questions, answer ONLY from the provided context and cite "
+        "sources inline like [1], [2]. If no relevant context is provided, do "
+        "not invent facts — briefly say what you can help with, or suggest "
+        "contacting the department office. Keep replies concise (1-4 sentences)."
     )
     turns = list(history or [])[-settings.MAX_HISTORY_TURNS:]
-    turns.append(
-        {"role": "user", "content": f"Context:\n{_context_block(contexts)}\n\nQuestion: {question}"}
-    )
+    if relevant:
+        content = f"Context:\n{_context_block(contexts)}\n\nUser message: {question}"
+    else:
+        content = f"(No relevant FAQ context found for this message.)\n\nUser message: {question}"
+    turns.append({"role": "user", "content": content})
+
     text = _chat(system, turns, max_tokens=512)
     if text:
         return text, True
-    # Extractive fallback: return the best-matching chunk verbatim.
-    return contexts[0]["text"].strip(), False
+
+    # Fallbacks when the LLM is unavailable:
+    if relevant:
+        return contexts[0]["text"].strip(), False  # extractive: best chunk
+    return GREETING_FALLBACK, False                 # conversational default
 
 
 def synthesize_canonical(

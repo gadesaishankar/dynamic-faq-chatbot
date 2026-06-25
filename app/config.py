@@ -78,6 +78,11 @@ class Settings:
 
     # --- Retrieval ---
     RAG_TOP_K: int = _get_int("RAG_TOP_K", 4)
+    # Min top-chunk cosine similarity for a message to count as an actual
+    # FAQ question. Below this (greetings, small talk, off-topic) the bot replies
+    # conversationally instead of forcing a grounded answer. Greetings score
+    # ~0.0-0.12, real questions ~0.34+, so 0.25 sits cleanly in the gap.
+    RELEVANCE_THRESHOLD: float = _get_float("RELEVANCE_THRESHOLD", 0.25)
 
     # --- Models / paths ---
     EMBED_MODEL: str = _get("EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
