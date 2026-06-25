@@ -1,0 +1,15 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.git/
+.gitignore
+.env
+data/*.db
+data/*.db-journal
+.hfcache/
+.cache/
+tests/
+*.md
+!README.md

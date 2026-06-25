@@ -1,0 +1,25 @@
+# Web framework
+fastapi>=0.110
+uvicorn[standard]>=0.29
+
+# Local embeddings (FREE, runs on CPU) — used for BOTH RAG retrieval and
+# semantic clustering. This is the only way the "embed every question"
+# requirement stays at $0.
+sentence-transformers>=2.6
+
+# Batch re-clustering (agglomerative, no preset k). Windows-friendly wheels.
+scikit-learn>=1.4
+numpy>=1.26
+
+# LLM for answer generation (OPTIONAL — the app runs without any API key).
+# Default provider is OpenRouter (free open-source models), called via the
+# OpenAI-compatible SDK. Nothing heavy runs locally — good for low-RAM laptops.
+openai>=1.0
+# Only needed if you set LLM_PROVIDER=anthropic instead of OpenRouter:
+anthropic>=0.40
+
+# Nightly batch re-clustering job
+APScheduler>=3.10
+
+# Config
+python-dotenv>=1.0

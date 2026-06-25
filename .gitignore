@@ -1,0 +1,17 @@
+# Secrets
+.env
+
+# Local database + caches
+data/*.db
+data/*.db-journal
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Sentence-transformers / HuggingFace model cache (downloaded on first run)
+.cache/
