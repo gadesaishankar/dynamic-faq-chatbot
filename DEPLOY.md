@@ -48,6 +48,16 @@ problem. The Space config already lives in the `README.md` metadata block
 >   storage** (paid) and set `DB_PATH=/data/faq.db`.
 > - Never commit `.env` (it's already git-ignored) — set the key via Secrets.
 
+#### Auto-deploy on every push (GitHub Actions)
+The repo ships [`.github/workflows/sync-to-hf.yml`](.github/workflows/sync-to-hf.yml),
+which mirrors GitHub → your Space on every push to `main`. To enable it, host the
+repo on GitHub and add (under **Settings → Secrets and variables → Actions**):
+- Secret: `HF_TOKEN` = your HF **write** token
+- Variables: `HF_USERNAME` = your HF username, `HF_SPACE` = the Space name
+
+After that you only ever `git push origin main`; the Space rebuilds itself. (You
+still need to do the very first push to create the Space, or create it in the UI.)
+
 ### B. Render (Docker Web Service) — durable, low cost
 1. New → **Web Service** → connect the repo → environment **Docker**.
 2. Instance type: **≥ 1 GB RAM** (free 512 MB is too small for torch).
