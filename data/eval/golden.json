@@ -1,0 +1,8 @@
+[
+  {"question": "How do I register for courses?", "expected_source": "academics.md", "must_include": ["portal", "registration"]},
+  {"question": "When can I add or drop a course?", "expected_source": "academics.md", "must_include": ["add", "drop"]},
+  {"question": "What are the library hours on weekends?", "expected_source": "campus_services.md", "must_include": ["9", "6"]},
+  {"question": "How many books can I borrow?", "expected_source": "campus_services.md", "must_include": ["6", "14"]},
+  {"question": "Can I pay my tuition fees online?", "expected_source": "fees_and_admin.md", "must_include": ["online", "portal"]},
+  {"question": "How do I get an official transcript?", "expected_source": "fees_and_admin.md", "must_include": ["transcript", "portal"]}
+]

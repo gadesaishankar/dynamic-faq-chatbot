@@ -56,7 +56,9 @@ def init_db() -> None:
             embedding  BLOB NOT NULL,
             ts         TEXT NOT NULL,
             cluster_id INTEGER,
-            answer     TEXT
+            answer     TEXT,
+            score      REAL NOT NULL DEFAULT 0,
+            cache_hit  INTEGER NOT NULL DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS clusters (
@@ -70,11 +72,37 @@ def init_db() -> None:
             last_updated         TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS feedback (
+            id      INTEGER PRIMARY KEY AUTOINCREMENT,
+            log_id  INTEGER NOT NULL,
+            vote    INTEGER NOT NULL,
+            ts      TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS answer_cache (
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            question  TEXT NOT NULL,
+            embedding BLOB NOT NULL,
+            answer    TEXT NOT NULL,
+            citations TEXT NOT NULL,
+            ts        TEXT NOT NULL
+        );
+
         CREATE INDEX IF NOT EXISTS idx_query_logs_cluster ON query_logs(cluster_id);
         CREATE INDEX IF NOT EXISTS idx_query_logs_ts ON query_logs(ts);
+        CREATE INDEX IF NOT EXISTS idx_feedback_log ON feedback(log_id);
         """
     )
+    # Migrate older DBs that predate the score/cache_hit columns.
+    _ensure_column(conn, "query_logs", "score", "REAL NOT NULL DEFAULT 0")
+    _ensure_column(conn, "query_logs", "cache_hit", "INTEGER NOT NULL DEFAULT 0")
     conn.commit()
+
+
+def _ensure_column(conn: sqlite3.Connection, table: str, col: str, decl: str) -> None:
+    cols = {r["name"] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    if col not in cols:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
 
 
 # --- vector (de)serialization ----------------------------------------------
@@ -126,14 +154,31 @@ def search_chunks(query_vec: np.ndarray, k: int) -> list[dict]:
     ]
 
 
+def all_kb_chunks() -> list[dict]:
+    """All KB chunks with vectors — used by hybrid (vector + BM25) retrieval."""
+    conn = get_conn()
+    rows = conn.execute("SELECT text, source, embedding FROM kb_chunks").fetchall()
+    return [
+        {"text": r["text"], "source": r["source"], "vec": _from_blob(r["embedding"])}
+        for r in rows
+    ]
+
+
 # --- query logs -------------------------------------------------------------
 
-def add_query_log(text: str, vec: np.ndarray, cluster_id: int | None, answer: str) -> int:
+def add_query_log(
+    text: str,
+    vec: np.ndarray,
+    cluster_id: int | None,
+    answer: str,
+    score: float = 0.0,
+    cache_hit: bool = False,
+) -> int:
     conn = get_conn()
     cur = conn.execute(
-        "INSERT INTO query_logs (text, embedding, ts, cluster_id, answer) "
-        "VALUES (?, ?, ?, ?, ?)",
-        (text, _to_blob(vec), _now(), cluster_id, answer),
+        "INSERT INTO query_logs (text, embedding, ts, cluster_id, answer, score, cache_hit) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (text, _to_blob(vec), _now(), cluster_id, answer, float(score), int(cache_hit)),
     )
     conn.commit()
     return int(cur.lastrowid)
@@ -177,6 +222,98 @@ def recent_count_for_cluster(cluster_id: int, window_days: int) -> int:
 def total_query_count() -> int:
     conn = get_conn()
     return int(conn.execute("SELECT COUNT(*) AS c FROM query_logs").fetchone()["c"])
+
+
+def count_below_score(threshold: float) -> int:
+    conn = get_conn()
+    return int(
+        conn.execute(
+            "SELECT COUNT(*) AS c FROM query_logs WHERE score < ?", (threshold,)
+        ).fetchone()["c"]
+    )
+
+
+def cache_hit_rate() -> float:
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT COUNT(*) AS total, COALESCE(SUM(cache_hit), 0) AS hits FROM query_logs"
+    ).fetchone()
+    total = int(row["total"])
+    return (int(row["hits"]) / total) if total else 0.0
+
+
+def avg_score_by_cluster() -> dict[int, float]:
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT cluster_id, AVG(score) AS s FROM query_logs "
+        "WHERE cluster_id IS NOT NULL GROUP BY cluster_id"
+    ).fetchall()
+    return {int(r["cluster_id"]): float(r["s"]) for r in rows}
+
+
+# --- feedback ---------------------------------------------------------------
+
+def add_feedback(log_id: int, vote: int) -> None:
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO feedback (log_id, vote, ts) VALUES (?, ?, ?)",
+        (log_id, 1 if vote >= 0 else -1, _now()),
+    )
+    conn.commit()
+
+
+def feedback_stats() -> dict:
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT COUNT(*) AS total, "
+        "COALESCE(SUM(CASE WHEN vote > 0 THEN 1 ELSE 0 END), 0) AS up "
+        "FROM feedback"
+    ).fetchone()
+    total = int(row["total"])
+    up = int(row["up"])
+    return {"count": total, "helpful_rate": (up / total) if total else None}
+
+
+def feedback_by_cluster() -> dict[int, dict]:
+    """cluster_id -> {up, down} from feedback joined through query_logs."""
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT q.cluster_id AS cid, "
+        "SUM(CASE WHEN f.vote > 0 THEN 1 ELSE 0 END) AS up, "
+        "SUM(CASE WHEN f.vote < 0 THEN 1 ELSE 0 END) AS down "
+        "FROM feedback f JOIN query_logs q ON f.log_id = q.id "
+        "WHERE q.cluster_id IS NOT NULL GROUP BY q.cluster_id"
+    ).fetchall()
+    return {int(r["cid"]): {"up": int(r["up"]), "down": int(r["down"])} for r in rows}
+
+
+# --- answer cache -----------------------------------------------------------
+
+def cache_lookup(vec: np.ndarray, threshold: float) -> dict | None:
+    """Return a cached answer if a near-identical question exists, else None."""
+    conn = get_conn()
+    rows = conn.execute("SELECT answer, citations, embedding FROM answer_cache").fetchall()
+    if not rows:
+        return None
+    mat = np.vstack([_from_blob(r["embedding"]) for r in rows])
+    sims = mat @ _normalize(vec)
+    best = int(np.argmax(sims))
+    if float(sims[best]) >= threshold:
+        return {
+            "answer": rows[best]["answer"],
+            "citations": json.loads(rows[best]["citations"]),
+        }
+    return None
+
+
+def cache_store(question: str, vec: np.ndarray, answer: str, citations: list[dict]) -> None:
+    conn = get_conn()
+    conn.execute(
+        "INSERT INTO answer_cache (question, embedding, answer, citations, ts) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (question, _to_blob(_normalize(vec)), answer, json.dumps(citations), _now()),
+    )
+    conn.commit()
 
 
 # --- clusters ---------------------------------------------------------------

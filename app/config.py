@@ -78,6 +78,21 @@ class Settings:
 
     # --- Retrieval ---
     RAG_TOP_K: int = _get_int("RAG_TOP_K", 4)
+    # Hybrid retrieval: fuse vector + BM25 keyword search via Reciprocal Rank
+    # Fusion. RRF_K dampens the weight of lower ranks (standard default 60).
+    RRF_K: int = _get_int("RRF_K", 60)
+
+    # --- Answer cache ---
+    # Serve a cached answer when a new question is near-identical (cosine) to a
+    # previously answered one. Saves LLM calls (and dodges the Gemini RPM limit).
+    ENABLE_ANSWER_CACHE: bool = _get("ENABLE_ANSWER_CACHE", "true").lower() == "true"
+    CACHE_SIM_THRESHOLD: float = _get_float("CACHE_SIM_THRESHOLD", 0.93)
+
+    # --- Query rewriting ---
+    # Rewrite a follow-up ("and on weekends?") into a standalone query before
+    # retrieval, using the conversation history. Costs one extra LLM call, so
+    # only fires when there IS history.
+    ENABLE_QUERY_REWRITE: bool = _get("ENABLE_QUERY_REWRITE", "true").lower() == "true"
     # Min top-chunk cosine similarity for a message to count as an actual
     # FAQ question. Below this (greetings, small talk, off-topic) the bot replies
     # conversationally instead of forcing a grounded answer. Greetings score

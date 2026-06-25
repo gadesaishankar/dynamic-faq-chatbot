@@ -52,3 +52,16 @@ def ingest_directory(path: str | None = None, *, reset: bool = True) -> dict:
         "chunks_indexed": len(items),
         "sources": [f.name for f in files],
     }
+
+
+def add_document(filename: str, text: str) -> dict:
+    """Write a new KB source file and re-ingest. Used by the admin UI to fill
+    content gaps without redeploying."""
+    src_dir = Path(settings.SOURCES_DIR)
+    src_dir.mkdir(parents=True, exist_ok=True)
+    # basename only — never let a caller write outside data/sources.
+    name = Path(filename).name or "untitled.md"
+    if not name.lower().endswith((".md", ".txt")):
+        name += ".md"
+    (src_dir / name).write_text(text, encoding="utf-8")
+    return ingest_directory()

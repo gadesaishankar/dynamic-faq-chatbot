@@ -104,6 +104,38 @@ Everything is env-overridable — see [.env.example](.env.example):
 shows on the FAQ), `FAQ_TOP_N`, `RECENCY_WINDOW_DAYS`, `RAG_TOP_K`,
 `MAX_HISTORY_TURNS` (multi-turn context window).
 
+## Features
+
+- **RAG chat** — hybrid retrieval (vector + BM25, fused with RRF), grounded
+  answers with citations, **streaming**, multi-turn with **follow-up query
+  rewriting**, and a **friendly path for greetings/off-topic** messages.
+- **Self-updating FAQ** — semantic-frequency clustering (real-time + nightly
+  batch), shown above a frequency threshold with LLM-generated generic titles.
+- **Feedback loop** — 👍/👎 per answer feeds the metrics.
+- **Semantic answer cache** — near-duplicate questions skip the LLM (cuts cost
+  and dodges free-tier rate limits).
+- **Guardrails** — strict grounding, honest "I don't know," prompt-injection
+  resistance, input length caps.
+- **Insights tab** — usage/quality analytics + the **content-gap report**
+  ("asked a lot, answered poorly") + add-knowledge form.
+- **Eval harness** — golden set scored for retrieval recall, keyword coverage,
+  and LLM-judge faithfulness (`python -m scripts.eval`).
+- **Pluggable LLM** — Gemini (default) / OpenRouter / Anthropic / none.
+
+## Evaluation
+
+```bash
+python -m scripts.ingest_kb && python -m scripts.eval
+```
+Prints retrieval recall, keyword coverage, and faithfulness — the numbers to
+quote. Edit `data/eval/golden.json` to add cases.
+
+## Multilingual (one-line switch)
+
+Set `EMBED_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`
+(same 384-dim, runs locally) and re-ingest. Gemini already answers in any
+language.
+
 ## Deploying
 
 See **[DEPLOY.md](DEPLOY.md)** — ships a [`Dockerfile`](Dockerfile) and covers
@@ -115,8 +147,13 @@ persistent volume for the SQLite FAQ history), with recommended hosts
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/chat` | `{ "question": "..." }` → answer + cluster assignment |
+| POST | `/chat` | `{question, history}` → grounded answer + `log_id`, `confidence`, `cache_hit`, cluster |
+| POST | `/chat/stream` | same, streamed token-by-token (SSE) |
+| POST | `/feedback` | `{log_id, vote}` — 👍 (1) / 👎 (-1) on an answer |
 | GET | `/faq?top_n=8` | top clusters ranked by recency-weighted frequency |
+| GET | `/analytics` | usage + quality metrics (helpful rate, cache hits, top/unanswered) |
+| GET | `/admin/content-gaps` | "asked a lot, answered poorly" — what to document next |
+| POST | `/admin/kb` | `{filename, text}` — add a KB doc + re-ingest |
 | POST | `/ingest` | rebuild the knowledge base from `data/sources/` |
 | POST | `/admin/recluster` | run the batch re-clustering pass now |
 | GET | `/health` | status (llm enabled?, #clusters, #queries) |

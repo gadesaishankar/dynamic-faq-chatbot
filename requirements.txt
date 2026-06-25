@@ -11,6 +11,9 @@ sentence-transformers>=2.6
 scikit-learn>=1.4
 numpy>=1.26
 
+# Keyword (BM25) half of hybrid retrieval — tiny, pure-Python.
+rank-bm25>=0.2.2
+
 # LLM for answer generation (OPTIONAL — the app runs without any API key).
 # Default provider is OpenRouter (free open-source models), called via the
 # OpenAI-compatible SDK. Nothing heavy runs locally — good for low-RAM laptops.

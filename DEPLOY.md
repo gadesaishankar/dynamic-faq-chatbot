@@ -44,8 +44,10 @@ problem. The Space config already lives in the `README.md` metadata block
 > - First build is slow (installs torch, downloads the model) — subsequent boots
 >   are fast.
 > - Free Space storage is **ephemeral** — the FAQ history resets when the Space
->   restarts/rebuilds. Fine for a demo. To persist it, enable HF **persistent
->   storage** (paid) and set `DB_PATH=/data/faq.db`.
+>   restarts/rebuilds. Fine for a demo. To persist it: enable HF **persistent
+>   storage** (paid) and set `DB_PATH=/data/faq.db`, **or** snapshot it for free
+>   with `python -m scripts.backup_db` (set `HF_TOKEN` + `HF_BACKUP_DATASET`) and
+>   restore `faq.db` on boot.
 > - Never commit `.env` (it's already git-ignored) — set the key via Secrets.
 
 #### Auto-deploy on every push (GitHub Actions)

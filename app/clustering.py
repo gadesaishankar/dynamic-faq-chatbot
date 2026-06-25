@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from . import llm, rag, store
+from . import llm, store
 from .config import settings
 
 
@@ -103,7 +103,7 @@ def ensure_canonical(cluster_id: int) -> dict | None:
     reps = cluster["representative_queries"]
     if not reps:
         return cluster
-    contexts = rag.retrieve(cluster["centroid"])
+    contexts = store.search_chunks(cluster["centroid"], settings.RAG_TOP_K)
     question, answer, used = llm.synthesize_canonical(reps, contexts)
     # Only PERSIST an LLM-generated title. If the LLM was unavailable/rate-limited
     # (used=False), don't cache the fallback — leave it empty so we retry later
@@ -127,7 +127,7 @@ def _generate_canonical_for_top(index_to_id: dict[int, int], new_clusters: list[
     generated = 0
     for i, cluster in sized[: settings.FAQ_TOP_N]:
         cid = index_to_id[i]
-        contexts = rag.retrieve(cluster["centroid"])
+        contexts = store.search_chunks(cluster["centroid"], settings.RAG_TOP_K)
         question, answer, used = llm.synthesize_canonical(
             cluster["representative_queries"], contexts
         )
