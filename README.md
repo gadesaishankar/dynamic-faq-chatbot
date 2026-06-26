@@ -122,6 +122,9 @@ shows on the FAQ), `FAQ_TOP_N`, `RECENCY_WINDOW_DAYS`, `RAG_TOP_K`,
   and LLM-judge faithfulness (`python -m scripts.eval`).
 - **Pluggable LLM** — Gemini (default) / OpenRouter / Anthropic / none.
 
+> Deep dive: **[ARCHITECTURE.md](ARCHITECTURE.md)** — the full AI reply flow,
+> every metric, and all threshold values with the reasoning behind them.
+
 ## Evaluation
 
 ```bash
