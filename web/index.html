@@ -46,6 +46,9 @@
       what to document next.</p>
     <div id="metrics" class="metrics"></div>
 
+    <h3>Most asked by category</h3>
+    <div id="categories"><div class="empty">Loading…</div></div>
+
     <h3>Content gaps — write these next</h3>
     <div id="gaps"><div class="empty">Loading…</div></div>
 
@@ -191,6 +194,20 @@
         const rows = (arr) => arr.length ? arr.map((x) => '<div class="row"><span>' + escapeHtml(x.question) + '</span><span class="count">' + x.ask_count + '</span></div>').join("") : '<div class="empty">none yet</div>';
         document.getElementById("top").innerHTML = rows(a.top_questions);
         document.getElementById("unanswered").innerHTML = rows(a.unanswered);
+      } catch (e) {}
+      try {
+        const cats = (await (await fetch("/categories")).json()).categories;
+        const ce = document.getElementById("categories");
+        if (!cats.length) { ce.innerHTML = '<div class="empty">No questions yet.</div>'; }
+        else {
+          ce.innerHTML = "";
+          cats.forEach((cat) => {
+            const block = el("div", "cat");
+            block.appendChild(el("div", "cat-head", escapeHtml(cat.category) + ' <span class="count">' + cat.total_asks + ' asks</span>'));
+            cat.questions.forEach((q) => block.appendChild(el("div", "row", '<span>' + escapeHtml(q.question) + '</span><span class="count">' + q.ask_count + '</span>')));
+            ce.appendChild(block);
+          });
+        }
       } catch (e) {}
       try {
         const g = (await (await fetch("/admin/content-gaps")).json()).gaps;

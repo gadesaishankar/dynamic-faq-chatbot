@@ -155,6 +155,7 @@ persistent volume for the SQLite FAQ history), with recommended hosts
 | POST | `/feedback` | `{log_id, vote}` — 👍 (1) / 👎 (-1) on an answer |
 | GET | `/faq?top_n=8` | top clusters ranked by recency-weighted frequency |
 | GET | `/analytics` | usage + quality metrics (helpful rate, cache hits, top/unanswered) |
+| GET | `/categories` | most-asked questions grouped by category (KB source) |
 | GET | `/admin/content-gaps` | "asked a lot, answered poorly" — what to document next |
 | POST | `/admin/kb` | `{filename, text}` — add a KB doc + re-ingest |
 | POST | `/ingest` | rebuild the knowledge base from `data/sources/` |

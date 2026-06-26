@@ -145,6 +145,12 @@ title** per top cluster.
 rank by recency-weighted frequency (asks in the last 30 days), show the LLM
 title + cached answer + example phrasings.
 
+**Most asked by category** (`GET /categories`) — each cluster's category is the
+**KB source document** its answer comes from (found via the nearest chunk to the
+cluster centroid), so `academics.md` → "Academics", `fees_and_admin.md` → "Fees &
+Admin", off-topic → "Other". Free and deterministic — no LLM classification
+needed, because the KB is already organized by topic.
+
 **Content-gap report** (`GET /admin/content-gaps`) — the headline insight:
 combine the **frequency** signal with a **quality** signal (low KB relevance
 and/or 👎 feedback) to surface *"asked a lot, answered poorly"* — i.e. exactly

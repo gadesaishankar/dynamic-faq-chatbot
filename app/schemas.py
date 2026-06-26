@@ -52,6 +52,22 @@ class FaqResponse(BaseModel):
     generated_from_queries: int
 
 
+class CategoryQuestion(BaseModel):
+    cluster_id: int
+    question: str
+    ask_count: int
+
+
+class CategoryGroup(BaseModel):
+    category: str
+    total_asks: int
+    questions: list[CategoryQuestion]
+
+
+class CategoriesResponse(BaseModel):
+    categories: list[CategoryGroup]
+
+
 class ContentGap(BaseModel):
     cluster_id: int
     question: str

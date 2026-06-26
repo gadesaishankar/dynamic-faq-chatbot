@@ -41,6 +41,26 @@ def test_feedback_aggregation(temp_db):
     assert store.feedback_by_cluster()[cid] == {"up": 1, "down": 1}
 
 
+def test_most_asked_by_category(temp_db):
+    embs = np.vstack([unit([1, 0, 0, 0]), unit([0, 1, 0, 0]), unit([0, 0, 1, 0])])
+    store.add_chunks(
+        [
+            ("register for courses via the portal", "academics.md"),
+            ("library weekend hours", "campus_services.md"),
+            ("pay tuition fees online", "fees_and_admin.md"),
+        ],
+        embs,
+    )
+    store.create_cluster(unit([1, 0, 0, 0]), "how to register")   # -> Academics
+    store.create_cluster(unit([0, 0, 1, 0]), "pay fees")          # -> Fees & Admin
+    store.create_cluster(unit([0, 0, 0, 1]), "off topic")         # -> Other (orthogonal)
+
+    names = {g["category"] for g in analytics.by_category()}
+    assert "Academics" in names
+    assert "Fees & Admin" in names
+    assert "Other" in names
+
+
 def test_content_gap_flags_low_coverage(temp_db):
     cid = store.create_cluster(unit([1, 0, 0, 0]), "is there a hostel on campus")
     for _ in range(3):  # asked often...

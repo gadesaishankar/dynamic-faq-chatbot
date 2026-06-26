@@ -141,3 +141,7 @@ h3 { font-size: 15px; margin: 22px 0 10px; font-weight: 500; }
 .kb-form button { align-self: flex-start; background: var(--accent); color: #08101f; border: none;
   border-radius: 8px; padding: 8px 14px; font-weight: 600; cursor: pointer; }
 .kb-status { font-size: 12px; color: var(--muted); }
+.cat { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+.cat-head { font-weight: 500; color: var(--accent); display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.cat .row { border-bottom: 1px solid var(--border); }
+.cat .row:last-child { border-bottom: none; }

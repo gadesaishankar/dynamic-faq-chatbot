@@ -22,6 +22,45 @@ def _freq(cluster: dict) -> int:
     return recent if recent > 0 else cluster["member_count"]
 
 
+def _category_name(source: str) -> str:
+    """Prettify a KB source filename into a category label.
+    'fees_and_admin.md' -> 'Fees & Admin', 'campus_services.md' -> 'Campus Services'."""
+    stem = source.rsplit(".", 1)[0].replace("_", " ").replace("-", " ").strip()
+    return stem.title().replace(" And ", " & ")
+
+
+def _cluster_category(cluster: dict) -> str:
+    """A cluster's category is the source document its answer comes from — found
+    by retrieving the nearest KB chunk to the cluster centroid. Off-topic
+    clusters (no strong match) fall into 'Other'."""
+    top = store.search_chunks(cluster["centroid"], 1)
+    if not top or top[0]["score"] < settings.RELEVANCE_THRESHOLD:
+        return "Other"
+    return _category_name(top[0]["source"])
+
+
+def by_category(per_category: int = 5) -> list[dict]:
+    """Most-asked questions grouped by category (KB source document)."""
+    groups: dict[str, list[dict]] = {}
+    for c in store.all_clusters():
+        cat = _cluster_category(c)
+        groups.setdefault(cat, []).append(
+            {"cluster_id": c["id"], "question": _title(c), "ask_count": _freq(c)}
+        )
+    out = []
+    for cat, qs in groups.items():
+        qs.sort(key=lambda x: -x["ask_count"])
+        out.append(
+            {
+                "category": cat,
+                "total_asks": sum(q["ask_count"] for q in qs),
+                "questions": qs[:per_category],
+            }
+        )
+    out.sort(key=lambda g: -g["total_asks"])
+    return out
+
+
 def content_gaps(min_asks: int = 2) -> list[dict]:
     avg_scores = store.avg_score_by_cluster()
     fb = store.feedback_by_cluster()

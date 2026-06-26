@@ -26,6 +26,7 @@ from .config import settings
 from .schemas import (
     AddKbRequest,
     AnalyticsResponse,
+    CategoriesResponse,
     ChatRequest,
     ChatResponse,
     ContentGapsResponse,
@@ -159,6 +160,11 @@ def get_faq(top_n: int | None = None) -> FaqResponse:
 @app.get("/analytics", response_model=AnalyticsResponse)
 def get_analytics() -> AnalyticsResponse:
     return AnalyticsResponse(**analytics.overview())
+
+
+@app.get("/categories", response_model=CategoriesResponse)
+def categories() -> CategoriesResponse:
+    return CategoriesResponse(categories=analytics.by_category())
 
 
 @app.get("/admin/content-gaps", response_model=ContentGapsResponse)
