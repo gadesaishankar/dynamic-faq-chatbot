@@ -24,6 +24,7 @@
         across tabs; refresh starts a new chat.</p>
       <button id="new-chat" title="Start a new conversation">＋ New chat</button>
     </div>
+    <div id="suggestions"></div>
     <div id="messages"></div>
     <form class="composer" id="composer">
       <input id="input" autocomplete="off" placeholder="e.g. How do I register for courses?" />
@@ -162,7 +163,28 @@
 
     document.getElementById("new-chat").addEventListener("click", () => {
       state.turns = []; msgEl.innerHTML = ""; input.focus();
+      loadSuggestions();
     });
+
+    // Frequently asked — clickable chips in the chat view
+    async function loadSuggestions() {
+      const box = document.getElementById("suggestions");
+      try {
+        const d = await (await fetch("/faq?top_n=5")).json();
+        if (!d.items.length) { box.innerHTML = ""; return; }
+        box.innerHTML = '<div class="sug-label">Frequently asked</div>';
+        d.items.forEach((it) => {
+          const chip = el("button", "sug-chip", escapeHtml(it.question));
+          chip.onclick = () => {
+            input.value = it.question;
+            document.getElementById("composer").dispatchEvent(new Event("submit"));
+            box.innerHTML = "";
+          };
+          box.appendChild(chip);
+        });
+      } catch (e) { box.innerHTML = ""; }
+    }
+    loadSuggestions();
 
     // FAQ
     let faqTimer = null;
