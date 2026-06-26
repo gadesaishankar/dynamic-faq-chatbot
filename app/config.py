@@ -99,6 +99,12 @@ class Settings:
     # ~0.0-0.12, real questions ~0.34+, so 0.25 sits cleanly in the gap.
     RELEVANCE_THRESHOLD: float = _get_float("RELEVANCE_THRESHOLD", 0.25)
 
+    # --- Storage backend ---
+    # "sqlite" (default, local file) or "mongodb" (persistent, e.g. Atlas free tier).
+    STORE_BACKEND: str = _get("STORE_BACKEND", "sqlite").lower()
+    MONGODB_URI: str = os.getenv("MONGODB_URI", "").strip()
+    MONGODB_DB: str = _get("MONGODB_DB", "faqbot")
+
     # --- Models / paths ---
     EMBED_MODEL: str = _get("EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
     DB_PATH: str = _get("DB_PATH", str(BASE_DIR / "data" / "faq.db"))

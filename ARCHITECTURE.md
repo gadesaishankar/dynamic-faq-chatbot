@@ -271,7 +271,7 @@ APScheduler · static HTML/JS SPA · Docker → Hugging Face Spaces.
 |---|---|---|
 | **Hybrid retrieval** (vector + BM25) | Vectors capture meaning; BM25 catches exact terms (course codes, names, "Wi-Fi") | Slightly more compute per query (negligible at this scale) |
 | **Agglomerative, not HDBSCAN** | Same goal (no preset *k*, merge drift) with clean Windows wheels and no native build pain | Single global distance threshold; the nightly pass mitigates |
-| **Local SQLite, not a vector DB** | Free, zero-setup, fits a prototype; `store.py` is the seam to swap in pgvector/OpenSearch later | Brute-force cosine won't scale to millions of vectors |
+| **Pluggable store (SQLite or MongoDB)** | SQLite is free/zero-setup for local + demos; MongoDB (e.g. Atlas free tier) gives durable persistence across Space rebuilds. `app/store.py` dispatches to a backend via `STORE_BACKEND` — the rest of the app is untouched. Vector search stays in-process (numpy) on both. | Brute-force cosine won't scale to millions of vectors (swap to Atlas Vector Search / pgvector when it matters) |
 | **Cache only first-turn, confident answers** | Follow-ups depend on history; greetings shouldn't be cached | Multi-turn answers aren't cached |
 | **Persist LLM titles only on success** | A rate-limited title falling back to raw user text would otherwise be cached forever | Title may show a representative phrasing until the next successful generation |
 | **Pluggable LLM, free-tier first** | Gemini free tier reliable enough; OpenRouter/Anthropic/none available via one env var | Free tiers are rate-limited (mitigated by the cache + fallback) |

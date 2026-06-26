@@ -24,5 +24,10 @@ anthropic>=0.40
 # Nightly batch re-clustering job
 APScheduler>=3.10
 
+# MongoDB backend (only used when STORE_BACKEND=mongodb; e.g. Atlas free tier).
+# dnspython is needed to resolve Atlas's mongodb+srv:// connection strings.
+pymongo>=4.6
+dnspython>=2.6
+
 # Config
 python-dotenv>=1.0
