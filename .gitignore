@@ -13,5 +13,8 @@ venv/
 *.egg-info/
 .pytest_cache/
 
+# Node
+frontend/node_modules/
+
 # Sentence-transformers / HuggingFace model cache (downloaded on first run)
 .cache/

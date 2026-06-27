@@ -201,8 +201,8 @@ def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
-# --- static UI --------------------------------------------------------------
-app.mount("/static", StaticFiles(directory=settings.WEB_DIR), name="static")
+# --- static UI (React build in web/) ----------------------------------------
+app.mount("/assets", StaticFiles(directory=settings.WEB_DIR / "assets"), name="assets")
 
 
 @app.get("/")

@@ -13,3 +13,4 @@ data/*.db-journal
 tests/
 *.md
 !README.md
+frontend/node_modules/
